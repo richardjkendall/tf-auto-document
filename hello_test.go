@@ -1,4 +1,4 @@
-package tfautodocument
+package main
 
 import "testing"
 
