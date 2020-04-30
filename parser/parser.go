@@ -54,7 +54,9 @@ func (parser *Parser) ParseFolder(path string) (*hcl.Blocks, *hcl.Blocks, *hcl.B
 		blocks = append(blocks, fileBlocks...)
 	}
 
-	fmt.Println(blocks)
+	for _, block := range blocks {
+		fmt.Println(block.Type)
+	}
 
 	return nil, nil, nil, nil
 }
