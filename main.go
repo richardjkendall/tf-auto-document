@@ -2,25 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/richardjkendall/tf-auto-document/parser"
 )
 
-type Config struct {
-	LogLevel string `hcl:"log_level"`
-}
-
 func main() {
-	var config Config
 
 	folderToScan := os.Args[1]
 	fmt.Println("Working on folder: " + folderToScan)
 
-	err := hclsimple.DecodeFile(folderToScan, nil, &config)
+	_, _, _, err := parser.New().ParseFolder(folderToScan)
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %s", err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
-	log.Printf("Configuration is %#v", config)
+
 }
