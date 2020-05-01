@@ -18,10 +18,25 @@ type Parser struct {
 
 // ModuleDetails contains the details of the module being scanned
 type ModuleDetails struct {
-	title    string
+	title     string
+	desc      string
+	partners  []string
+	depends   []string
+	variables []VariableDetails
+	outputs   []OutputDetails
+}
+
+// VariableDetails contains the details of the variables defined by the module
+type VariableDetails struct {
+	name     string
 	desc     string
-	partners []string
-	depends  []string
+	def      string
+	dataType string
+}
+
+// OutputDetails contains the details of the outputs defined by the module
+type OutputDetails struct {
+	name string
 }
 
 // New creates a new instance of Parser
@@ -33,11 +48,12 @@ func New() *Parser {
 
 // ParseFolder opens a folder and finds the *.tf files so we can scan them
 // and get the information needed to write the documentation files
-func (parser *Parser) ParseFolder(path string) (*hcl.Blocks, *hcl.Blocks, *hcl.Blocks, error) {
+func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
+	var r ModuleDetails
 	// parse all the terraform files I find in the directory
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return nil, nil, nil, err
+		return r, err
 	}
 	for _, file := range files {
 		// ignore . files
@@ -47,18 +63,20 @@ func (parser *Parser) ParseFolder(path string) (*hcl.Blocks, *hcl.Blocks, *hcl.B
 		fullPath := filepath.Join(path, file.Name())
 		// ignore directories
 		if !file.IsDir() {
+			// only look at Terraform files
 			if strings.HasSuffix(file.Name(), ".tf") {
 				fmt.Println("\tFile: " + fullPath)
+				// check the main.tf file for the comments
 				if strings.HasSuffix(file.Name(), "main.tf") {
-					details, err := parser.getMainDetails(fullPath)
+					r, err := parser.getMainDetails(fullPath)
 					if err != nil {
-						return nil, nil, nil, err
+						return r, err
 					}
-					fmt.Printf("%+v\n", details)
+					fmt.Printf("%+v\n", r)
 				}
 				_, diagnostics := parser.hclParser.ParseHCLFile(fullPath)
 				if diagnostics != nil && diagnostics.HasErrors() {
-					return nil, nil, nil, diagnostics
+					return r, diagnostics
 				}
 			}
 		}
@@ -69,7 +87,7 @@ func (parser *Parser) ParseFolder(path string) (*hcl.Blocks, *hcl.Blocks, *hcl.B
 	for _, file := range parser.hclParser.Files() {
 		fileBlocks, err := parser.parseFile(file)
 		if err != nil {
-			return nil, nil, nil, err
+			return r, err
 		}
 		blocks = append(blocks, fileBlocks...)
 	}
@@ -78,9 +96,10 @@ func (parser *Parser) ParseFolder(path string) (*hcl.Blocks, *hcl.Blocks, *hcl.B
 		fmt.Println(block.Type)
 	}
 
-	return nil, nil, nil, nil
+	return r, nil
 }
 
+// parseFile gets the contents of the file for later use
 func (parser *Parser) parseFile(file *hcl.File) (hcl.Blocks, error) {
 	contents, diagnostics := file.Body.Content(terraformSchema)
 	if diagnostics != nil && diagnostics.HasErrors() {
