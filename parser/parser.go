@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Parser is the object which holds the methods needed to scan hcl files looking for the details we need
@@ -92,8 +94,38 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 		blocks = append(blocks, fileBlocks...)
 	}
 
-	for _, block := range blocks {
-		fmt.Println(block.Type)
+	// go through the variables
+	ctx := &hcl.EvalContext{}
+	for _, block := range blocks.OfType("variable") {
+		variableName := block.Labels[0]
+		fmt.Printf("\t\tvariable name: %s\n", variableName)
+		attributes, diagnostics := block.Body.JustAttributes()
+		if diagnostics != nil && diagnostics.HasErrors() {
+			return r, diagnostics
+		}
+		for _, attribute := range attributes {
+			val, _ := attribute.Expr.Value(ctx)
+			//attribute.Expr.Value()
+			fmt.Printf("\t\t\t %s with type %s\n", attribute.Name, val.Type())
+			if attribute.Name == "type" {
+				/*b, err := json.Marshal(attribute)
+				if err != nil {
+					return r, err
+				}*/
+				t, e := typeexpr.Type(attribute.Expr)
+				if e != nil {
+					return r, e
+				}
+				fmt.Printf("\t\t\t type attribute = %s\n", typeexpr.TypeString(t))
+			}
+			if val.Type() == cty.String {
+				fmt.Printf("\t\t\t %s = %s\n", attribute.Name, val.AsString())
+			}
+			if val.Type() == cty.Number {
+				fmt.Printf("\t\t\t %s = %s\n", attribute.Name, val.AsBigFloat().String())
+			}
+
+		}
 	}
 
 	return r, nil
