@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // Parser is the object which holds the methods needed to scan hcl files looking for the details we need
@@ -52,6 +53,7 @@ func New() *Parser {
 // and get the information needed to write the documentation files
 func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 	var r ModuleDetails
+	var v []VariableDetails
 	// parse all the terraform files I find in the directory
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -74,7 +76,6 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 					if err != nil {
 						return r, err
 					}
-					fmt.Printf("%+v\n", r)
 				}
 				_, diagnostics := parser.hclParser.ParseHCLFile(fullPath)
 				if diagnostics != nil && diagnostics.HasErrors() {
@@ -97,7 +98,9 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 	// go through the variables
 	ctx := &hcl.EvalContext{}
 	for _, block := range blocks.OfType("variable") {
+		var varDetails VariableDetails
 		variableName := block.Labels[0]
+		varDetails.name = variableName
 		fmt.Printf("\t\tvariable name: %s\n", variableName)
 		attributes, diagnostics := block.Body.JustAttributes()
 		if diagnostics != nil && diagnostics.HasErrors() {
@@ -105,30 +108,63 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 		}
 		for _, attribute := range attributes {
 			val, _ := attribute.Expr.Value(ctx)
-			//attribute.Expr.Value()
-			fmt.Printf("\t\t\t %s with type %s\n", attribute.Name, val.Type())
+			// get data type
 			if attribute.Name == "type" {
-				/*b, err := json.Marshal(attribute)
+				valType, err := typeexpr.Type(attribute.Expr)
 				if err != nil {
 					return r, err
-				}*/
-				t, e := typeexpr.Type(attribute.Expr)
-				if e != nil {
-					return r, e
 				}
-				fmt.Printf("\t\t\t type attribute = %s\n", typeexpr.TypeString(t))
+				varDetails.dataType = typeexpr.TypeString(valType)
 			}
-			if val.Type() == cty.String {
-				fmt.Printf("\t\t\t %s = %s\n", attribute.Name, val.AsString())
+			// get description
+			if attribute.Name == "description" && val.Type() == cty.String {
+				varDetails.desc = val.AsString()
 			}
-			if val.Type() == cty.Number {
-				fmt.Printf("\t\t\t %s = %s\n", attribute.Name, val.AsBigFloat().String())
+			// get default
+			if attribute.Name == "default" {
+				// deal with string version
+				if val.Type() == cty.String {
+					varDetails.def = val.AsString()
+				}
+				// deal with numeric version
+				if val.Type() == cty.Number {
+					varDetails.def = val.AsBigFloat().String()
+				}
+				// deal with boolean version
+				if val.Type() == cty.Bool {
+					var ret bool
+					gocty.FromCtyValue(val, &ret)
+					if ret {
+						varDetails.def = "true"
+					} else {
+						varDetails.def = "false"
+					}
+				}
+				// deal with tuples and lists
+				//...
 			}
-
+			// convert tuples
+			if cty.Type.IsTupleType(val.Type()) {
+				l := parser.convertTupleOrList(val)
+				fmt.Printf("\t\t\t %s is a tuple: %v\n", attribute.Name, l)
+			}
 		}
+		v = append(v, varDetails)
 	}
+	r.variables = v
 
+	fmt.Printf("%+v\n", r)
 	return r, nil
+}
+
+func (parser *Parser) convertTupleOrList(val cty.Value) []string {
+	var ret []string
+
+	for it := val.ElementIterator(); it.Next(); {
+		_, v := it.Element()
+		ret = append(ret, v.AsString())
+	}
+	return ret
 }
 
 // parseFile gets the contents of the file for later use
@@ -151,7 +187,7 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 	if err != nil {
 		return r, err
 	}
-	var re = regexp.MustCompile(`(?m)^\/\*\ntitle:\s+([\w\-]+)\ndesc:\s+([\w\-\s\.,]+)\n(partners:\s+[\w\-,\s]+\n)?(depends:\s+[\w\-,\s]+\n)?\*\/`)
+	var re = regexp.MustCompile(`(?m)^\/\*\ntitle:\s+([\w\-]+)\ndesc:\s+([\w\-\s\.,/]+)\n(partners:\s+[\w\-,\s]+\n)?(depends:\s+[\w\-,\s]+\n)?\*\/`)
 	match := re.FindAllStringSubmatch(string(data), -1)
 	var title string
 	var desc string
@@ -184,7 +220,7 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 func trimAll(input []string) []string {
 	output := make([]string, len(input))
 	for i, s := range input {
-		output[i] = strings.Trim(s, " ")
+		output[i] = strings.Trim(s, " \r\n")
 	}
 	return output
 }
