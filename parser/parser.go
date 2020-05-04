@@ -229,7 +229,7 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 	if err != nil {
 		return r, err
 	}
-	var re = regexp.MustCompile(`(?m)^\/\*\r?\ntitle:\s+([\w\-]+)\r?\ndesc:\s+([\w\-\s\.,\/]+)\r?\n(partners:\s+[\w\-,\s]+\r?\n)?(depends:\s+[\w\-,\s]+\r?\n)?\*\/`)
+	var re = regexp.MustCompile(`(?m)^\/\*\r?\ntitle:\s+([\w\-]+)\r?\ndesc:\s+([\w\-\t \.,\/<>="';!@#$%^&*()_+~:]+)\r?\n(partners:\s+[\w\-,\s]+\r?\n)?(depends:\s+[\w\-,\s]+\r?\n)?\*\/`)
 	match := re.FindAllStringSubmatch(string(data), -1)
 	var title string
 	var desc string
