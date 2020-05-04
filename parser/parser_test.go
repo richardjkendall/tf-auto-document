@@ -82,3 +82,79 @@ func TestSimpleVariable(t *testing.T) {
 		t.Errorf("ParseFolder() = %q, want %q", got, want)
 	}
 }
+
+func TestTypedVariables(t *testing.T) {
+	want := ModuleDetails{
+		variables: []VariableDetails{
+			VariableDetails{
+				name:     "test_string",
+				desc:     "this is a string",
+				dataType: "string",
+				def:      "string",
+			},
+			VariableDetails{
+				name:     "test_number",
+				desc:     "this is a number",
+				dataType: "number",
+				def:      "10",
+			},
+			VariableDetails{
+				name:     "test_bool",
+				desc:     "this is a bool",
+				dataType: "bool",
+				def:      "true",
+			},
+		},
+	}
+	got, err := New().ParseFolder("tests/variable_typed/")
+	if err != nil {
+		t.Errorf("Issue %q", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ParseFolder() = %q, want %q", got, want)
+	}
+}
+
+func TestComplexVariables(t *testing.T) {
+	want := ModuleDetails{
+		variables: []VariableDetails{
+			VariableDetails{
+				name:     "test_string_list",
+				desc:     "list of strings",
+				dataType: "list(string)",
+				def:      "[one, two, three]",
+			},
+			VariableDetails{
+				name:     "test_number_list",
+				desc:     "list of numbers",
+				dataType: "list(number)",
+				def:      "[1, 2, 3]",
+			},
+			VariableDetails{
+				name:     "test_bool_list",
+				desc:     "list of bools",
+				dataType: "list(bool)",
+				def:      "[true, false]",
+			},
+			VariableDetails{
+				name:     "test_tuple_mv",
+				desc:     "multi-value tuple",
+				dataType: "tuple([string,number,bool])",
+				def:      "[test, 1, true]",
+			},
+			VariableDetails{
+				name:     "test_string_map",
+				desc:     "test map for strings",
+				dataType: "map(string)",
+				def:      "b",
+			},
+		},
+	}
+	got, err := New().ParseFolder("tests/variable_complex/")
+	if err != nil {
+		t.Errorf("Issue %q", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ParseFolder() = %q, want %q", got, want)
+	}
+}

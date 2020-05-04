@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // Parser is the object which holds the methods needed to scan hcl files looking for the details we need
@@ -132,23 +131,25 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 				}
 				// deal with numeric version
 				if val.Type() == cty.Number {
-					varDetails.def = val.AsBigFloat().String()
+					varDetails.def = numberToString(val)
 				}
 				// deal with boolean version
 				if val.Type() == cty.Bool {
-					var ret bool
-					gocty.FromCtyValue(val, &ret)
-					if ret {
-						varDetails.def = "true"
-					} else {
-						varDetails.def = "false"
-					}
+					varDetails.def = boolToString(val)
 				}
 				// deal with tuples and lists
 				if val.Type().IsTupleType() || val.Type().IsListType() {
-					ret := parser.convertTupleOrList(val)
-					varDetails.def = strings.Join(ret, ",")
+					//fmt.Printf("%s is tuple/list", attribute.Name)
+					ret := convertTupleOrList(val)
+					varDetails.def = "[" + strings.Join(ret, ", ") + "]"
 				}
+				// deal with maps
+				if val.Type().IsMapType() {
+					fmt.Printf("%s is map\n", attribute.Name)
+					ret := convertMap(val)
+					varDetails.def = "[" + strings.Join(ret, ", ") + "]"
+				}
+				fmt.Printf("%s is type\n", typeexpr.TypeString(val.Type()))
 			}
 
 		}
@@ -178,35 +179,6 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 
 	fmt.Printf("%+v\n", r)
 	return r, nil
-}
-
-func (parser *Parser) convertTupleOrList(val cty.Value) []string {
-	var ret []string
-	// if list then all elements have the same type
-	if val.Type().IsListType() {
-		eleType := val.Type().ElementType()
-		// handle strings
-		if eleType == cty.String {
-			for it := val.ElementIterator(); it.Next(); {
-				_, v := it.Element()
-				ret = append(ret, v.AsString())
-			}
-		}
-	}
-	// if tuple then elements can have different types
-	if val.Type().IsTupleType() {
-		eleTypes := val.Type().TupleElementTypes()
-		var index int
-		for it := val.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			// handle string
-			if eleTypes[index] == cty.String {
-				ret = append(ret, v.AsString())
-			}
-			index++
-		}
-	}
-	return ret
 }
 
 // parseFile gets the contents of the file for later use
