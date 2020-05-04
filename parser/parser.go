@@ -21,26 +21,26 @@ type Parser struct {
 
 // ModuleDetails contains the details of the module being scanned
 type ModuleDetails struct {
-	title     string
-	desc      string
-	partners  []string
-	depends   []string
-	variables []VariableDetails
-	outputs   []OutputDetails
+	Title     string
+	Desc      string
+	Partners  []string
+	Depends   []string
+	Variables []VariableDetails
+	Outputs   []OutputDetails
 }
 
 // VariableDetails contains the details of the variables defined by the module
 type VariableDetails struct {
-	name     string
-	desc     string
-	def      string
-	dataType string
+	Name     string
+	Desc     string
+	Def      string
+	DataType string
 }
 
 // OutputDetails contains the details of the outputs defined by the module
 type OutputDetails struct {
-	name string
-	desc string
+	Name string
+	Desc string
 }
 
 // New creates a new instance of Parser
@@ -102,7 +102,7 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 	for _, block := range blocks.OfType("variable") {
 		var varDetails VariableDetails
 		variableName := block.Labels[0]
-		varDetails.name = variableName
+		varDetails.Name = variableName
 		fmt.Printf("\t\tvariable name: %s\n", variableName)
 		// go through the attributes of the variable
 		attributes, diagnostics := block.Body.JustAttributes()
@@ -117,51 +117,27 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 				if err != nil {
 					return r, err
 				}
-				varDetails.dataType = typeexpr.TypeString(valType)
+				varDetails.DataType = typeexpr.TypeString(valType)
 			}
 			// get description
 			if attribute.Name == "description" && val.Type() == cty.String {
-				varDetails.desc = val.AsString()
+				varDetails.Desc = val.AsString()
 			}
 			// get default
 			if attribute.Name == "default" {
-				// deal with string version
-				if val.Type() == cty.String {
-					varDetails.def = val.AsString()
-				}
-				// deal with numeric version
-				if val.Type() == cty.Number {
-					varDetails.def = numberToString(val)
-				}
-				// deal with boolean version
-				if val.Type() == cty.Bool {
-					varDetails.def = boolToString(val)
-				}
-				// deal with tuples and lists
-				if val.Type().IsTupleType() || val.Type().IsListType() {
-					//fmt.Printf("%s is tuple/list", attribute.Name)
-					ret := convertTupleOrList(val)
-					varDetails.def = "[" + strings.Join(ret, ", ") + "]"
-				}
-				// deal with maps
-				if val.Type().IsMapType() {
-					fmt.Printf("%s is map\n", attribute.Name)
-					ret := convertMap(val)
-					varDetails.def = "[" + strings.Join(ret, ", ") + "]"
-				}
-				fmt.Printf("%s is type\n", typeexpr.TypeString(val.Type()))
+				varDetails.Def = convertValueToString(val)
 			}
 
 		}
 		v = append(v, varDetails)
 	}
-	r.variables = v
+	r.Variables = v
 
 	// go through the outputs if they are present
 	for _, block := range blocks.OfType("output") {
 		var outDetails OutputDetails
 		outputName := block.Labels[0]
-		outDetails.name = outputName
+		outDetails.Name = outputName
 		// find the description attribute if it is present
 		attributes, diagnostics := block.Body.JustAttributes()
 		if diagnostics != nil && diagnostics.HasErrors() {
@@ -170,14 +146,14 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 		for _, attribute := range attributes {
 			val, _ := attribute.Expr.Value(ctx)
 			if attribute.Name == "description" {
-				outDetails.desc = val.AsString()
+				outDetails.Desc = val.AsString()
 			}
 		}
 		o = append(o, outDetails)
 	}
-	r.outputs = o
+	r.Outputs = o
 
-	fmt.Printf("%+v\n", r)
+	//fmt.Printf("%+v\n", r)
 	return r, nil
 }
 
@@ -222,10 +198,10 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 		}
 	}
 	r = ModuleDetails{
-		title:    title,
-		desc:     desc,
-		partners: partners,
-		depends:  depends,
+		Title:    title,
+		Desc:     desc,
+		Partners: partners,
+		Depends:  depends,
 	}
 	return r, nil
 }

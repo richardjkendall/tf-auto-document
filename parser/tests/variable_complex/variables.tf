@@ -31,3 +31,52 @@ variable "test_string_map" {
     c = "cee"
   }
 }
+
+variable "test_object" {
+  description = "test object"
+  type = object({
+    a=string,
+    b=number,
+    c=bool
+  })
+  default = {
+    a = "ay",
+    b = 10,
+    c = false,
+  }
+}
+
+variable "test_string_set" {
+  description = "set of strings"
+  type = set(string)
+  default = ["one", "two", "three"]
+}
+
+variable "test_list_of_objects" {
+  description = "test list of objects"
+  type = list(object({
+    a=string,
+    b=number,
+    c=bool
+  }))
+  default = [{
+    a = "ay",
+    b = 10,
+    c = false,
+  },
+  {
+    d = "dee",
+    e = 20,
+    f = true,
+  }]
+}
+
+variable "test_object_with_list" {
+  description = "test object with a list"
+  type = object({
+    a=list(string)
+  })
+  default = {
+    a = ["a", "b", "c"]
+  }
+}

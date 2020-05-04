@@ -2,61 +2,56 @@ package parser
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
-	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
+
+func convertValueToString(val cty.Value) string {
+	// for basic types we can return the string representation right away
+	if val.Type() == cty.String {
+		return val.AsString()
+	}
+	if val.Type() == cty.Number {
+		return numberToString(val)
+	}
+	if val.Type() == cty.Bool {
+		return boolToString(val)
+	}
+	// for tuples (which seems to include lists) we need to iterate
+	if val.Type().IsTupleType() {
+		var ret []string
+		for it := val.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			ret = append(ret, convertValueToString(v))
+		}
+		return "[" + strings.Join(ret, ", ") + "]"
+	}
+	// for objects (which seems to include maps) we need to iterate though the attributes
+	// need to sort attributes first so that comparisons will work
+	if val.Type().IsObjectType() {
+		var ret []string
+		atys := val.Type().AttributeTypes()
+		attributeNames := make([]string, 0, len(atys))
+		for name := range atys {
+			attributeNames = append(attributeNames, name)
+		}
+		sort.Strings(attributeNames)
+		for _, name := range attributeNames {
+			ret = append(ret, name+"="+convertValueToString(val.GetAttr(name)))
+		}
+		return "{" + strings.Join(ret, ", ") + "}"
+	}
+	// if we get here we have an issue
+	return "ERROR: cannot convert!"
+}
 
 func convertMap(val cty.Value) []string {
 	var ret []string
 	fmt.Printf("in map convert\n")
 
-	return ret
-}
-
-func convertTupleOrList(val cty.Value) []string {
-	var ret []string
-	fmt.Printf("in convert tuple\n")
-	// if list then all elements have the same type
-	if val.Type().IsListType() {
-		eleType := val.Type().ElementType()
-		// handle strings
-		if eleType == cty.String {
-			for it := val.ElementIterator(); it.Next(); {
-				_, v := it.Element()
-				ret = append(ret, v.AsString())
-			}
-		}
-	}
-	// if tuple then elements can have different types
-	if val.Type().IsTupleType() {
-		eleTypes := val.Type().TupleElementTypes()
-		var index int
-		if !val.CanIterateElements() {
-			fmt.Printf("can't iterate over elements\n")
-		} else {
-			fmt.Printf("can iterate over elements\n")
-		}
-		for it := val.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			fmt.Printf("type of element is %s\n", typeexpr.TypeString(v.Type()))
-			// handle string
-			if eleTypes[index] == cty.String {
-				ret = append(ret, v.AsString())
-			}
-			// handle number
-			if eleTypes[index] == cty.Number {
-				ret = append(ret, numberToString(v))
-			}
-			// handle bool
-			if eleTypes[index] == cty.Bool {
-				ret = append(ret, boolToString(v))
-			}
-
-			index++
-		}
-	}
 	return ret
 }
 
