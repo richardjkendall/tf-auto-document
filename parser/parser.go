@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclparse"
+
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -40,6 +41,7 @@ type VariableDetails struct {
 // OutputDetails contains the details of the outputs defined by the module
 type OutputDetails struct {
 	name string
+	desc string
 }
 
 // New creates a new instance of Parser
@@ -54,6 +56,7 @@ func New() *Parser {
 func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 	var r ModuleDetails
 	var v []VariableDetails
+	var o []OutputDetails
 	// parse all the terraform files I find in the directory
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -102,6 +105,7 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 		variableName := block.Labels[0]
 		varDetails.name = variableName
 		fmt.Printf("\t\tvariable name: %s\n", variableName)
+		// go through the attributes of the variable
 		attributes, diagnostics := block.Body.JustAttributes()
 		if diagnostics != nil && diagnostics.HasErrors() {
 			return r, diagnostics
@@ -141,17 +145,36 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 					}
 				}
 				// deal with tuples and lists
-				//...
+				if val.Type().IsTupleType() || val.Type().IsListType() {
+					ret := parser.convertTupleOrList(val)
+					varDetails.def = strings.Join(ret, ",")
+				}
 			}
-			// convert tuples
-			if cty.Type.IsTupleType(val.Type()) {
-				l := parser.convertTupleOrList(val)
-				fmt.Printf("\t\t\t %s is a tuple: %v\n", attribute.Name, l)
-			}
+
 		}
 		v = append(v, varDetails)
 	}
 	r.variables = v
+
+	// go through the outputs if they are present
+	for _, block := range blocks.OfType("output") {
+		var outDetails OutputDetails
+		outputName := block.Labels[0]
+		outDetails.name = outputName
+		// find the description attribute if it is present
+		attributes, diagnostics := block.Body.JustAttributes()
+		if diagnostics != nil && diagnostics.HasErrors() {
+			return r, diagnostics
+		}
+		for _, attribute := range attributes {
+			val, _ := attribute.Expr.Value(ctx)
+			if attribute.Name == "description" {
+				outDetails.desc = val.AsString()
+			}
+		}
+		o = append(o, outDetails)
+	}
+	r.outputs = o
 
 	fmt.Printf("%+v\n", r)
 	return r, nil
@@ -159,10 +182,29 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 
 func (parser *Parser) convertTupleOrList(val cty.Value) []string {
 	var ret []string
-
-	for it := val.ElementIterator(); it.Next(); {
-		_, v := it.Element()
-		ret = append(ret, v.AsString())
+	// if list then all elements have the same type
+	if val.Type().IsListType() {
+		eleType := val.Type().ElementType()
+		// handle strings
+		if eleType == cty.String {
+			for it := val.ElementIterator(); it.Next(); {
+				_, v := it.Element()
+				ret = append(ret, v.AsString())
+			}
+		}
+	}
+	// if tuple then elements can have different types
+	if val.Type().IsTupleType() {
+		eleTypes := val.Type().TupleElementTypes()
+		var index int
+		for it := val.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			// handle string
+			if eleTypes[index] == cty.String {
+				ret = append(ret, v.AsString())
+			}
+			index++
+		}
 	}
 	return ret
 }
@@ -187,7 +229,7 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 	if err != nil {
 		return r, err
 	}
-	var re = regexp.MustCompile(`(?m)^\/\*\ntitle:\s+([\w\-]+)\ndesc:\s+([\w\-\s\.,/]+)\n(partners:\s+[\w\-,\s]+\n)?(depends:\s+[\w\-,\s]+\n)?\*\/`)
+	var re = regexp.MustCompile(`(?m)^\/\*\r?\ntitle:\s+([\w\-]+)\r?\ndesc:\s+([\w\-\s\.,\/]+)\r?\n(partners:\s+[\w\-,\s]+\r?\n)?(depends:\s+[\w\-,\s]+\r?\n)?\*\/`)
 	match := re.FindAllStringSubmatch(string(data), -1)
 	var title string
 	var desc string
@@ -196,8 +238,8 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 	if match == nil {
 		return r, nil
 	}
-	title = match[0][1]
-	desc = match[0][2]
+	title = strings.Trim(match[0][1], " \r\n")
+	desc = strings.Trim(match[0][2], " \r\n")
 	for i := 3; i < len(match[0]); i++ {
 		temp := match[0][i]
 		if strings.HasPrefix(temp, "partners:") {
