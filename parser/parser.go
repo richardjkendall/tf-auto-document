@@ -50,9 +50,9 @@ func New() *Parser {
 	}
 }
 
-// ParseFolder opens a folder and finds the *.tf files so we can scan them
+// ParseModule opens a folder and finds the *.tf files so we can scan them
 // and get the information needed to write the documentation files
-func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
+func (parser *Parser) ParseModule(path string) (ModuleDetails, error) {
 	var r ModuleDetails
 	var v []VariableDetails
 	var o []OutputDetails
@@ -74,10 +74,13 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 				fmt.Println("\tFile: " + fullPath)
 				// check the main.tf file for the comments
 				if strings.HasSuffix(file.Name(), "main.tf") {
-					r, err := parser.getMainDetails(fullPath)
+					fmt.Printf("got main file\n")
+					tr, err := parser.getMainDetails(fullPath)
+					fmt.Printf("1. current mod details struct %+v\n", r)
 					if err != nil {
 						return r, err
 					}
+					r = tr
 				}
 				_, diagnostics := parser.hclParser.ParseHCLFile(fullPath)
 				if diagnostics != nil && diagnostics.HasErrors() {
@@ -86,6 +89,7 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 			}
 		}
 	}
+	fmt.Printf("2. current mod details struct %+v\n", r)
 
 	// run parser on all files
 	var blocks hcl.Blocks
@@ -113,7 +117,8 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 			val, _ := attribute.Expr.Value(ctx)
 			// get data type
 			if attribute.Name == "type" {
-				valType, err := typeexpr.Type(attribute.Expr)
+				//valType, err := typeexpr.Type(attribute.Expr)
+				valType, err := typeexpr.TypeConstraint(attribute.Expr)
 				if err != nil {
 					return r, err
 				}
@@ -121,13 +126,12 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 			}
 			// get description
 			if attribute.Name == "description" && val.Type() == cty.String {
-				varDetails.Desc = val.AsString()
+				varDetails.Desc = convertValueToString(val)
 			}
 			// get default
 			if attribute.Name == "default" {
 				varDetails.Def = convertValueToString(val)
 			}
-
 		}
 		v = append(v, varDetails)
 	}
@@ -146,14 +150,12 @@ func (parser *Parser) ParseFolder(path string) (ModuleDetails, error) {
 		for _, attribute := range attributes {
 			val, _ := attribute.Expr.Value(ctx)
 			if attribute.Name == "description" {
-				outDetails.Desc = val.AsString()
+				outDetails.Desc = convertValueToString(val)
 			}
 		}
 		o = append(o, outDetails)
 	}
 	r.Outputs = o
-
-	//fmt.Printf("%+v\n", r)
 	return r, nil
 }
 
@@ -204,13 +206,4 @@ func (parser *Parser) getMainDetails(path string) (ModuleDetails, error) {
 		Depends:  depends,
 	}
 	return r, nil
-}
-
-// trimAll takes the elements of a slice of strings and trims all the whitespace off the strings in the slice
-func trimAll(input []string) []string {
-	output := make([]string, len(input))
-	for i, s := range input {
-		output[i] = strings.Trim(s, " \r\n")
-	}
-	return output
 }

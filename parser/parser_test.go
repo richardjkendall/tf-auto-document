@@ -75,7 +75,7 @@ func TestSimpleVariable(t *testing.T) {
 			},
 		},
 	}
-	got, err := New().ParseFolder("tests/simple_variable/")
+	got, err := New().ParseModule("tests/simple_variable/")
 	if err != nil {
 		t.Errorf("Issue %q", err)
 	}
@@ -107,7 +107,7 @@ func TestTypedVariables(t *testing.T) {
 			},
 		},
 	}
-	got, err := New().ParseFolder("tests/variable_typed/")
+	got, err := New().ParseModule("tests/variable_typed/")
 	if err != nil {
 		t.Errorf("Issue %q", err)
 	}
@@ -175,7 +175,7 @@ func TestComplexVariables(t *testing.T) {
 			},
 		},
 	}
-	got, err := New().ParseFolder("tests/variable_complex/")
+	got, err := New().ParseModule("tests/variable_complex/")
 	if err != nil {
 		t.Errorf("Issue %q", err)
 	}

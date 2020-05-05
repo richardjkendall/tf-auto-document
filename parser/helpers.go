@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
+// convertValueToString recurses through cty.Value structures and converts them to a string representation
 func convertValueToString(val cty.Value) string {
 	// for basic types we can return the string representation right away
 	if val.Type() == cty.String {
@@ -48,13 +48,7 @@ func convertValueToString(val cty.Value) string {
 	return "ERROR: cannot convert!"
 }
 
-func convertMap(val cty.Value) []string {
-	var ret []string
-	fmt.Printf("in map convert\n")
-
-	return ret
-}
-
+// numberToString converts cty.Value number to a string representation
 func numberToString(val cty.Value) string {
 	return val.AsBigFloat().String()
 }
@@ -67,4 +61,13 @@ func boolToString(val cty.Value) string {
 		return "true"
 	}
 	return "false"
+}
+
+// trimAll takes the elements of a slice of strings and trims all the whitespace off the strings in the slice
+func trimAll(input []string) []string {
+	output := make([]string, len(input))
+	for i, s := range input {
+		output[i] = strings.Trim(s, " \r\n")
+	}
+	return output
 }
