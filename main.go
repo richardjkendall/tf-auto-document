@@ -11,8 +11,15 @@ import (
 	"github.com/richardjkendall/tf-auto-document/scangit"
 )
 
-func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanGit) ([]parser.ModuleDetails, error) {
-	var r []parser.ModuleDetails
+// CombinedModuleDetails holds the combined module details
+type CombinedModuleDetails struct {
+	Folder     string
+	TFDetails  parser.ModuleDetails
+	GitDetails scangit.GitCommit
+}
+
+func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanGit) ([]CombinedModuleDetails, error) {
+	var r []CombinedModuleDetails
 	files, err := ioutil.ReadDir(path + "/" + modulesfolder)
 	if err != nil {
 		return r, err
