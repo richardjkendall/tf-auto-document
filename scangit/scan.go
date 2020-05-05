@@ -2,6 +2,7 @@ package scangit
 
 import (
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -74,6 +75,7 @@ func (scanner *ScanGit) LoadTags() error {
 		tag, err := scanner.repo.TagObject(hash)
 		if err != nil {
 			// nothing to do
+			fmt.Printf("error on this tag %s\n", hex.EncodeToString(hash[:]))
 		} else {
 			target := tag.Target
 			scanner.tags[hex.EncodeToString(target[:])] = tag.Name

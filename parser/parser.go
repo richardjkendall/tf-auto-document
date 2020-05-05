@@ -71,12 +71,9 @@ func (parser *Parser) ParseModule(path string) (ModuleDetails, error) {
 		if !file.IsDir() {
 			// only look at Terraform files
 			if strings.HasSuffix(file.Name(), ".tf") {
-				fmt.Println("\tFile: " + fullPath)
 				// check the main.tf file for the comments
 				if strings.HasSuffix(file.Name(), "main.tf") {
-					fmt.Printf("got main file\n")
 					tr, err := parser.getMainDetails(fullPath)
-					fmt.Printf("1. current mod details struct %+v\n", r)
 					if err != nil {
 						return r, err
 					}
@@ -89,7 +86,6 @@ func (parser *Parser) ParseModule(path string) (ModuleDetails, error) {
 			}
 		}
 	}
-	fmt.Printf("2. current mod details struct %+v\n", r)
 
 	// run parser on all files
 	var blocks hcl.Blocks
@@ -107,7 +103,6 @@ func (parser *Parser) ParseModule(path string) (ModuleDetails, error) {
 		var varDetails VariableDetails
 		variableName := block.Labels[0]
 		varDetails.Name = variableName
-		fmt.Printf("\t\tvariable name: %s\n", variableName)
 		// go through the attributes of the variable
 		attributes, diagnostics := block.Body.JustAttributes()
 		if diagnostics != nil && diagnostics.HasErrors() {
