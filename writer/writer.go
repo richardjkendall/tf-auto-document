@@ -19,10 +19,11 @@ func New(file string) *Writer {
 
 // WriteFile writes markdown to disk
 func (writer *Writer) WriteFile() error {
-	f, err := os.Open(writer.fileName)
+	f, err := os.Create(writer.fileName)
 	if err != nil {
 		return err
 	}
+
 	w := bufio.NewWriter(f)
 	_, werr := w.WriteString(writer.buffer)
 	if werr != nil {
@@ -31,6 +32,21 @@ func (writer *Writer) WriteFile() error {
 	w.Flush()
 	f.Close()
 	return nil
+}
+
+// MakeLink makes links to include in markdown files
+func MakeLink(title string, url string) string {
+	return "[" + title + "](" + url + ")"
+}
+
+// InlineCode returns code in backticks
+func InlineCode(code string) string {
+	return "`" + code + "`"
+}
+
+// GetBuf returns the buffer from memory
+func (writer *Writer) GetBuf() string {
+	return writer.buffer
 }
 
 func (writer *Writer) writeLine(line string) {
@@ -71,7 +87,9 @@ func (writer *Writer) H3(line string) {
 
 // P adds a block of text
 func (writer *Writer) P(line string) {
+	writer.writeLine("")
 	writer.writeLine(line)
+	writer.writeLine("")
 }
 
 // Bullet creates a bullet point
