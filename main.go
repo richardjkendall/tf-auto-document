@@ -24,9 +24,14 @@ func createRootReadme(path string, details []CombinedModuleDetails) error {
 	w.H1Underline("Terraform Modules")
 	w.P("This is a collection of terraform modules")
 	w.P("Click on the links to see the details of each of the modules")
+	var modRows [][]string
 	for _, module := range details {
-
+		row := []string{module.TFDetails.Title, module.TFDetails.Desc, module.Folder + "/README.md"}
+		modRows = append(modRows, row)
 	}
+	headers := []string{"Module", "Description", "Link"}
+	w.Table(headers, modRows)
+	return w.WriteFile()
 }
 
 func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanGit) ([]CombinedModuleDetails, error) {
@@ -91,5 +96,7 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("module details which came back: %+v", mod)
+
+	createRootReadme("", mod)
 
 }

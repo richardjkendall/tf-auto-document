@@ -1,6 +1,10 @@
 package writer
 
-import "strings"
+import (
+	"bufio"
+	"os"
+	"strings"
+)
 
 // Writer object is used to hold details of the markdown being written
 type Writer struct {
@@ -11,6 +15,22 @@ type Writer struct {
 // New get a new writer object
 func New(file string) *Writer {
 	return &Writer{fileName: file}
+}
+
+// WriteFile writes markdown to disk
+func (writer *Writer) WriteFile() error {
+	f, err := os.Open(writer.fileName)
+	if err != nil {
+		return err
+	}
+	w := bufio.NewWriter(f)
+	_, werr := w.WriteString(writer.buffer)
+	if werr != nil {
+		return werr
+	}
+	w.Flush()
+	f.Close()
+	return nil
 }
 
 func (writer *Writer) writeLine(line string) {
