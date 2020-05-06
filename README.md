@@ -37,4 +37,4 @@ The title must contain only lower/uppercase characters A-Z or hyphens.
 
 1. Clone this repo
 2. Build with `go build`
-3. Run tool pointing it at a folder containing a git repository containing Terraform modules.  `./tf-auto-document ../tf-modules
+3. Run tool pointing it at a folder containing a git repository containing Terraform modules.  `./tf-auto-document ../tf-modules`
