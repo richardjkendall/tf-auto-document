@@ -9,13 +9,24 @@ import (
 
 	"github.com/richardjkendall/tf-auto-document/parser"
 	"github.com/richardjkendall/tf-auto-document/scangit"
+	"github.com/richardjkendall/tf-auto-document/writer"
 )
 
 // CombinedModuleDetails holds the combined module details
 type CombinedModuleDetails struct {
 	Folder     string
 	TFDetails  parser.ModuleDetails
-	GitDetails scangit.GitCommit
+	GitDetails []scangit.GitCommit
+}
+
+func createRootReadme(path string, details []CombinedModuleDetails) error {
+	w := writer.New(path + "/README.md")
+	w.H1Underline("Terraform Modules")
+	w.P("This is a collection of terraform modules")
+	w.P("Click on the links to see the details of each of the modules")
+	for _, module := range details {
+
+	}
 }
 
 func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanGit) ([]CombinedModuleDetails, error) {
@@ -33,17 +44,21 @@ func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanG
 		fullPath := filepath.Join(path+"/"+modulesfolder, file.Name())
 		// only look at directories
 		if file.IsDir() {
+			var cmd CombinedModuleDetails
 			m, err := parser.New().ParseModule(fullPath)
 			if err != nil {
 				return r, err
 			}
-			r = append(r, m)
+			cmd.TFDetails = m
+
 			// need to get commits
 			c, err := scanner.GetCommits(modulesfolder + "/" + file.Name())
 			if err != nil {
 				return r, err
 			}
-			fmt.Printf("commits %+v\n", c)
+			cmd.GitDetails = c
+			r = append(r, cmd)
+			//fmt.Printf("commits %+v\n", c)
 		}
 	}
 	return r, nil
