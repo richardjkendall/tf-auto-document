@@ -1,5 +1,10 @@
 # tf-auto-document
-A tool which automatically builds documentation for Terraform modules
+A tool which automatically builds documentation for Terraform modules.
+
+And before you say it, I know there are other tools that do this.  I created this because:
+
+* I wanted to learn about Go
+* I wanted the documentation to include git tag (release) information
 
 ## Example
 I use this tool on my Terraform modules hosted here: https://github.com/richardjkendall/tf-modules
@@ -35,6 +40,14 @@ The title must contain only lower/uppercase characters A-Z or hyphens.
 
 ## How to use
 
+### Build yourself
+
 1. Clone this repo
 2. Build with `go build`
+3. Run tool pointing it at a folder containing a git repository containing Terraform modules.  `./tf-auto-document ../tf-modules`
+
+### Use a pre-built binary
+
+1. Download a a binary from the Releases tab (select one for your OS)
+2. Decompress it
 3. Run tool pointing it at a folder containing a git repository containing Terraform modules.  `./tf-auto-document ../tf-modules`
