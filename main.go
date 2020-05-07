@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -63,6 +64,16 @@ func createModuleReadme(path string, details CombinedModuleDetails) error {
 	varHeaders := []string{"Name", "Type", "Description", "Default Value"}
 	w.H2Underline("Variables")
 	w.Table(varHeaders, varRows)
+	if len(details.TFDetails.Outputs) > 0 {
+		var outRows [][]string
+		for _, output := range details.TFDetails.Outputs {
+			row := []string{output.Name, output.Desc}
+			outRows = append(outRows, row)
+		}
+		outHeaders := []string{"Name", "Description"}
+		w.H2Underline("Outputs")
+		w.Table(outHeaders, outRows)
+	}
 	return w.WriteFile()
 }
 
@@ -125,8 +136,13 @@ func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanG
 
 func main() {
 
-	folderToScan := os.Args[1]
+	// get args
+	tfRepoFolder := flag.String("repo", ".", "Path to the folder containing the Modules repository, defaults to current directory")
+	modulesSubFolder := flag.String("mods", "modules", "Sub-folder containing modules, defaults to 'modules'")
+	flag.Parse()
+	folderToScan := *tfRepoFolder
 	fmt.Println("Working on repository: " + folderToScan)
+	fmt.Printf("Modules sub-folder: %s\n", *modulesSubFolder)
 
 	// create gitscanner for this repo
 	scanner := scangit.New()
@@ -144,7 +160,7 @@ func main() {
 	}
 
 	// scan terraform files
-	mod, err := scanModulesFolder(folderToScan, "modules", scanner)
+	mod, err := scanModulesFolder(folderToScan, *modulesSubFolder, scanner)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
