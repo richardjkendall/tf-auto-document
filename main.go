@@ -126,9 +126,10 @@ func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanG
 			if err != nil {
 				return r, err
 			}
+			fmt.Printf("... got %d commits for this folder\n", len(c))
+
 			cmd.GitDetails = c
 			r = append(r, cmd)
-			//fmt.Printf("commits %+v\n", c)
 		}
 	}
 	return r, nil
@@ -139,46 +140,55 @@ func main() {
 	// get args
 	tfRepoFolder := flag.String("repo", ".", "Path to the folder containing the Modules repository, defaults to current directory")
 	modulesSubFolder := flag.String("mods", "modules", "Sub-folder containing modules, defaults to 'modules'")
+	disableOutput := flag.Bool("outputoff", false, "Should the tool produce outputs")
 	flag.Parse()
 	folderToScan := *tfRepoFolder
-	fmt.Println("Working on repository: " + folderToScan)
+
+	fmt.Printf("Working on repository: %s\n", folderToScan)
 	fmt.Printf("Modules sub-folder: %s\n", *modulesSubFolder)
 
 	// create gitscanner for this repo
+	fmt.Printf("Scanning git repository...\n")
 	scanner := scangit.New()
 	err := scanner.Open(folderToScan)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 	// load tags
 	err = scanner.LoadTags()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	fmt.Printf("... scan complete.  Got %d tags\n", len(scanner.GetTags()))
 
 	// scan terraform files
+	fmt.Printf("Scanning terrform modules...\n")
 	mod, err := scanModulesFolder(folderToScan, *modulesSubFolder, scanner)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	fmt.Printf("... scan complete.  Got %d modules\n", len(mod))
 
-	// create root md file
-	rerr := createRootReadme(folderToScan, mod)
-	if rerr != nil {
-		fmt.Println(rerr)
-		os.Exit(1)
-	}
-
-	// create each module's md file
-	for _, m := range mod {
-		merr := createModuleReadme(folderToScan+"/"+m.Folder, m)
-		if merr != nil {
+	if !*disableOutput {
+		// create root md file
+		rerr := createRootReadme(folderToScan, mod)
+		if rerr != nil {
 			fmt.Println(rerr)
 			os.Exit(1)
 		}
+
+		// create each module's md file
+		for _, m := range mod {
+			merr := createModuleReadme(folderToScan+"/"+m.Folder, m)
+			if merr != nil {
+				fmt.Println(rerr)
+				os.Exit(1)
+			}
+		}
+	} else {
+		fmt.Printf("Output is disabled\n")
 	}
 }

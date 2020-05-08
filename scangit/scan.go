@@ -85,3 +85,7 @@ func (scanner *ScanGit) LoadTags() error {
 	//fmt.Printf("tags %+v\n", scanner.tags)
 	return nil
 }
+
+func (scanner *ScanGit) GetTags() map[string]string {
+	return scanner.tags
+}
