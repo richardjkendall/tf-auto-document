@@ -128,7 +128,7 @@ func scanModulesFolder(path string, modulesfolder string, scanner *scangit.ScanG
 				return r, err
 			}
 			fmt.Printf("... got %d commits for this folder\n", len(c))
-
+			fmt.Printf("... commit data %+v\n", c)
 			cmd.GitDetails = c
 			r = append(r, cmd)
 		}
@@ -163,6 +163,7 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("... scan complete.  Got %d tags\n", len(scanner.GetTags()))
+	fmt.Printf("Tags: %+v\n", scanner.GetTags())
 
 	// scan terraform files
 	fmt.Printf("Scanning terrform modules...\n")
