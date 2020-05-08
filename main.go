@@ -46,6 +46,7 @@ func createModuleReadme(path string, details CombinedModuleDetails) error {
 			commitRows = append(commitRows, row)
 		}
 	}
+	fmt.Printf("Writing readme for %s with %d commits\n", path, len(commitRows))
 	if len(commitRows) > 0 {
 		commitHeaders := []string{"Tag", "Message", "Commit"}
 		w.Table(commitHeaders, commitRows)
