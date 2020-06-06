@@ -117,6 +117,9 @@ func (parser *Parser) ParseModule(path string) (ModuleDetails, error) {
 				if err != nil {
 					return r, err
 				}
+				//dt := typeexpr.TypeString(valType)
+				//fdt := string(hclwrite.Format([]byte(dt)))
+				//fmt.Println(fdt)
 				varDetails.DataType = typeexpr.TypeString(valType)
 			}
 			// get description

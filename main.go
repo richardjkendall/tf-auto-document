@@ -42,7 +42,7 @@ func createModuleReadme(path string, details CombinedModuleDetails) error {
 	var commitRows [][]string
 	for _, commit := range details.GitDetails {
 		if commit.Tag != "" {
-			row := []string{commit.Tag, strings.Trim(commit.Message, "\r\n"), writer.InlineCode(commit.Hash[0:6])}
+			row := []string{commit.Tag, strings.Trim(commit.Message, "\r\n"), writer.InlineCode(commit.Hash[0:7])}
 			commitRows = append(commitRows, row)
 		}
 	}
@@ -142,6 +142,7 @@ func main() {
 	tfRepoFolder := flag.String("repo", ".", "Path to the folder containing the Modules repository, defaults to current directory")
 	modulesSubFolder := flag.String("mods", "modules", "Sub-folder containing modules, defaults to 'modules'")
 	disableOutput := flag.Bool("outputoff", false, "Should the tool produce outputs")
+	debugLogs := flag.Bool("debug", false, "Should we display debug logs, defaults to off")
 	flag.Parse()
 	folderToScan := *tfRepoFolder
 
@@ -163,7 +164,9 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("... scan complete.  Got %d tags\n", len(scanner.GetTags()))
-	fmt.Printf("Tags: %+v\n", scanner.GetTags())
+	if *debugLogs {
+		fmt.Printf("Tags: %+v\n", scanner.GetTags())
+	}
 
 	// scan terraform files
 	fmt.Printf("Scanning terrform modules...\n")
