@@ -43,7 +43,7 @@ func (scanner *ScanGit) GetCommits(subpath string) ([]GitCommit, error) {
 	var r []GitCommit
 	lopts := git.LogOptions{
 		PathFilter: func(s string) bool {
-			if strings.HasPrefix(s, subpath) {
+			if strings.HasPrefix(s, subpath) && (strings.HasSuffix(s, "tf") || strings.HasSuffix(s, "TF")) {
 				return true
 			}
 			return false
